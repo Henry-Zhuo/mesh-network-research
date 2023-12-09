@@ -163,6 +163,9 @@ add_subdirectory(scratch)
 # Build test utils
 add_subdirectory(utils)
 
+# Build research project
+add_subdirectory(project)
+
 write_lock()
 write_configtable()
 
