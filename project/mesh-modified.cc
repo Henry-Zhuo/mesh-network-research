@@ -323,13 +323,16 @@ MeshTest::InstallApplication()
     if (m_app == "udp") 
     {
         InstallUdpApplication();
+    } else {
+        NS_LOG_DEBUG("Using default application");
+        InstallTcpApplication();
     }
-    InstallTcpApplication();
 }
 
 void
 MeshTest::InstallUdpApplication()
 {
+    NS_LOG_DEBUG("Installing UDP application");
     uint16_t portNumber = 9;
     UdpEchoServerHelper echoServer(portNumber);
     uint16_t sinkNodeId = m_xSize * m_ySize - 1;
@@ -351,6 +354,7 @@ MeshTest::InstallUdpApplication()
 
 void 
 MeshTest::InstallTcpApplication() {
+    NS_LOG_DEBUG("Installing TCP application");
     uint16_t port = 9;
     uint16_t sinkNodeId = m_xSize * m_ySize - 1;
 
