@@ -143,8 +143,8 @@ class MeshTest
 
   private:
     uint32_t seed;           ///< seed for random generator
-    int m_xSize;             ///< X size
-    int m_ySize;             ///< Y size
+    uint32_t m_xSize;        ///< X size
+    uint32_t m_ySize;        ///< Y size
     double m_step;           ///< step
     double m_randomStart;    ///< random start
     double m_totalTime;      ///< total time
@@ -256,20 +256,13 @@ MeshTest::CreateNodes()
 {
     /*
      * Create m_ySize*m_xSize stations to form a grid topology
-     * Put x nodes each on n threads, then 1 each on y of them, so we have
-     * xn + y = number of desired nodes
-     */
-    uint32_t node_count = m_ySize * m_xSize;
-    uint32_t nodes_per_thread = node_count / m_threads;
-    uint32_t remaining_nodes = node_count % m_threads;
-    // Put x nodes on each thread
-    for (uint32_t i = 0; i < m_threads; i++) {
-        nodes.Create(nodes_per_thread, i);
+     * Put x nodes on each system id. 0th one is in system id 0,
+     * last one is in last system id
+     */ 
+    for (uint32_t i = 0; i < m_ySize; i++) {
+        nodes.Create(m_xSize, i);
     }
-    // Spread remaining nodes among the first y threads
-    for (uint32_t i = 0; i < remaining_nodes; i++) {
-        nodes.Create(1, i);
-    }
+    sinkSystemId = m_ySize - 1;
     // Configure YansWifiChannel
     YansWifiPhyHelper wifiPhy;
     YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
