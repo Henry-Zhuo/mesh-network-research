@@ -300,6 +300,8 @@ MeshTest::SetMobility()
                                   DoubleValue(0.0),
                                   "MinY",
                                   DoubleValue(0.0),
+                                  "Z",
+                                  DoubleValue(0.0),
                                   "DeltaX",
                                   DoubleValue(m_step),
                                   "DeltaY",
