@@ -436,21 +436,27 @@ MeshTest::Run()
 void
 MeshTest::Report()
 {
+    uint32_t systemId = MpiInterface::GetSystemId();
+
     unsigned n(0);
     for (auto i = meshDevices.Begin(); i != meshDevices.End(); ++i, ++n)
     {
-        std::ostringstream os;
-        os << "mp-report-" << n << ".xml";
-        std::cerr << "Printing mesh point device #" << n << " diagnostics to " << os.str() << "\n";
-        std::ofstream of;
-        of.open(os.str().c_str());
-        if (!of.is_open())
-        {
-            std::cerr << "Error: Can't open file " << os.str() << "\n";
-            return;
-        }
-        mesh.Report(*i, of);
-        of.close();
+        // Have only a single report for each node,
+        // coming from the system id that was the node was assigned to
+        if (systemId == (*i)->GetNode()->GetSystemId()) {
+            std::ostringstream os;
+            os << "mp-report-" << n << ".xml";
+            std::cerr << "Printing mesh point device #" << n << " diagnostics to " << os.str() << "\n";
+            std::ofstream of;
+            of.open(os.str().c_str());
+            if (!of.is_open())
+            {
+                std::cerr << "Error: Can't open file " << os.str() << "\n";
+                return;
+            }
+            mesh.Report(*i, of);
+            of.close();
+        } 
     }
 }
 
