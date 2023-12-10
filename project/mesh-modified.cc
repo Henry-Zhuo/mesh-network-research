@@ -153,6 +153,7 @@ class MeshTest
     std::string m_app;       ///< application protocol
     std::string m_stack;     ///< stack
     std::string m_root;      ///< root
+    uint32_t m_threads;      ///< number of threads for simulation
     /// List of network nodes
     NodeContainer nodes;
     /// List of all mesh point devices
@@ -192,7 +193,8 @@ MeshTest::MeshTest()
       m_ascii(false),
       m_app("tcp"),
       m_stack("ns3::Dot11sStack"),
-      m_root("ff:ff:ff:ff:ff:ff")
+      m_root("ff:ff:ff:ff:ff:ff"),
+      m_threads(1)
 {
 }
 
@@ -216,6 +218,7 @@ MeshTest::Configure(int argc, char* argv[])
     cmd.AddValue("application", "Protocol for application", m_app);
     cmd.AddValue("stack", "Type of protocol stack. ns3::Dot11sStack by default", m_stack);
     cmd.AddValue("root", "Mac address of root mesh point in HWMP", m_root);
+    cmd.AddValue("threads", "Number of threads to use for simulation", m_threads);
     cmd.Parse(argc, argv);
     NS_LOG_DEBUG("Grid:" << m_xSize << "*" << m_ySize);
     NS_LOG_DEBUG("Simulation time: " << m_totalTime << " s");
@@ -230,8 +233,20 @@ MeshTest::CreateNodes()
 {
     /*
      * Create m_ySize*m_xSize stations to form a grid topology
+     * Put x nodes each on n threads, then 1 each on y of them, so we have
+     * xn + y = number of desired nodes
      */
-    nodes.Create(m_ySize * m_xSize);
+    uint32_t node_count = m_ySize * m_xSize;
+    uint32_t nodes_per_thread = node_count / m_threads;
+    uint32_t remaining_nodes = node_count % m_threads;
+    // Put x nodes on each thread
+    for (uint32_t i = 0; i < m_threads; i++) {
+        nodes.Create(nodes_per_thread, i);
+    }
+    // Spread remaining nodes among the first y threads
+    for (uint32_t i = 0; i < remaining_nodes; i++) {
+        nodes.Create(1, i);
+    }
     // Configure YansWifiChannel
     YansWifiPhyHelper wifiPhy;
     YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
