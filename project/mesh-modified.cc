@@ -229,6 +229,7 @@ MeshTest::Configure(int argc, char* argv[])
     cmd.AddValue("application", "Protocol for application", m_app);
     cmd.AddValue("stack", "Type of protocol stack. ns3::Dot11sStack by default", m_stack);
     cmd.AddValue("root", "Mac address of root mesh point in HWMP", m_root);
+    // TODO: Unused for now
     cmd.AddValue("threads", "Number of threads to use for simulation", m_threads);
     cmd.AddValue("nullmsg", "Enable the use of null-message synchronization", nullmsg);
     if (nullmsg)
