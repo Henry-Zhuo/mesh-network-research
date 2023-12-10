@@ -1,0 +1,7 @@
+# Lines with "#" as their first character, are comments
+# Example building:
+#-1.0 3.0 2.0 10.0 0.0 9.0
+# Makes a box with corners at (-1.0, 2.0, 0.0) and (3.0, 10.0, 9.0).
+# So 2 units wide, 8 units long, and 9 units high
+# Currently, buildings are concrete blocks, without rooms inside
+# Note that nodes can be inside solid walls, affecting their connectivity.

@@ -70,6 +70,7 @@
  */
 
 #include "ns3/applications-module.h"
+#include "ns3/buildings-module.h"
 #include "ns3/core-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/mesh-helper.h"
@@ -153,6 +154,8 @@ class MeshTest
     std::string m_app;       ///< application protocol
     std::string m_stack;     ///< stack
     std::string m_root;      ///< root
+    std::string m_buildings; ///< Name of file defining buildings
+
     /// List of network nodes
     NodeContainer nodes;
     /// List of all mesh point devices
@@ -167,6 +170,8 @@ class MeshTest
     void CreateNodes();
     /// Set up nodes' mobility
     void SetMobility();
+    /// Set up buildings
+    void SetupBuildings();
     /// Install internet m_stack on nodes
     void InstallInternetStack();
     /// Install applications
@@ -192,7 +197,8 @@ MeshTest::MeshTest()
       m_ascii(false),
       m_app("tcp"),
       m_stack("ns3::Dot11sStack"),
-      m_root("ff:ff:ff:ff:ff:ff")
+      m_root("ff:ff:ff:ff:ff:ff"),
+      m_buildings("buildings.txt")
 {
 }
 
@@ -216,6 +222,7 @@ MeshTest::Configure(int argc, char* argv[])
     cmd.AddValue("application", "Protocol for application", m_app);
     cmd.AddValue("stack", "Type of protocol stack. ns3::Dot11sStack by default", m_stack);
     cmd.AddValue("root", "Mac address of root mesh point in HWMP", m_root);
+    cmd.AddValue("buildings", "File name to read building data from", m_buildings);
     cmd.Parse(argc, argv);
     NS_LOG_DEBUG("Grid:" << m_xSize << "*" << m_ySize);
     NS_LOG_DEBUG("Simulation time: " << m_totalTime << " s");
@@ -269,6 +276,9 @@ MeshTest::CreateNodes()
     mesh.AssignStreams(meshDevices, 0);
     // Setup mobility
     SetMobility();
+    
+    SetupBuildings();
+
     if (m_pcap)
     {
         wifiPhy.EnablePcapAll(std::string("mp"));
@@ -305,6 +315,62 @@ MeshTest::SetMobility()
     AsciiTraceHelper ascii;
     mobility.EnableAsciiAll(ascii.CreateFileStream("mesh-path.tr"));
     mobility.Install(nodes);
+}
+
+void
+MeshTest::SetupBuildings()
+{
+    // Parse building info from file
+    std::ifstream buildingsFile(m_buildings);
+    std::string line;
+    std::vector<std::string> buildingsInfo;
+    if (buildingsFile.is_open()) {
+        while (getline(buildingsFile, line)) {
+            // Ignore empty lines and comments in the file
+            if (line.length() > 0 && line.at(0) != '#') {
+                buildingsInfo.push_back(line);
+            }
+        }
+    } else {
+        NS_LOG_WARN("Buildings file cannot be opened, ignoring buildings.");
+    }
+
+    // Create buildings based on the parsed info
+    for (auto line : buildingsInfo) {
+        double x_min;
+        double x_max;
+        double y_min;
+        double y_max;
+        double z_min;
+        double z_max;
+
+        std::string word;
+        std::vector<std::string> words;
+        std::stringstream lineStream(line);
+        while (lineStream >> word) {
+            words.push_back(word);
+        }
+        x_min = std::stod(words.at(0));
+        x_max = std::stod(words.at(1));
+        y_min = std::stod(words.at(2));
+        y_max = std::stod(words.at(3));
+        z_min = std::stod(words.at(4));
+        z_max = std::stod(words.at(5));
+
+        Ptr<Building> building = CreateObject<Building>();
+        building->SetBoundaries(Box(x_min, x_max, y_min, y_max, z_min, z_max));
+        /* TODO: Be able to specify building type, material, and layout.
+           For the project, we allow single room buildings.
+           Ideally, we want to model individual concrete walls. */
+        building->SetBuildingType(Building::Commercial);
+        building->SetExtWallsType(Building::ConcreteWithoutWindows);
+        building->SetNFloors(1);
+        building->SetNRoomsX(1);
+        building->SetNRoomsY(1);
+    }
+
+    // Make nodes aware of buildings
+    BuildingsHelper::Install(nodes);
 }
 
 void
