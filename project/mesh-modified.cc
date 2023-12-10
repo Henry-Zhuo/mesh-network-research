@@ -79,6 +79,10 @@
 #include "ns3/yans-wifi-helper.h"
 #include "ns3/rng-seed-manager.h"
 
+// TODO: Have MPI usage be controlled by a switch
+#include "ns3/mpi-interface.h"
+#include <mpi.h>
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -154,6 +158,7 @@ class MeshTest
     std::string m_stack;     ///< stack
     std::string m_root;      ///< root
     uint32_t m_threads;      ///< number of threads for simulation
+    bool nullmsg;            ///< If false, use parallel simulation
     /// List of network nodes
     NodeContainer nodes;
     /// List of all mesh point devices
@@ -194,7 +199,8 @@ MeshTest::MeshTest()
       m_app("tcp"),
       m_stack("ns3::Dot11sStack"),
       m_root("ff:ff:ff:ff:ff:ff"),
-      m_threads(1)
+      m_threads(1),
+      nullmsg(false)
 {
 }
 
@@ -219,6 +225,17 @@ MeshTest::Configure(int argc, char* argv[])
     cmd.AddValue("stack", "Type of protocol stack. ns3::Dot11sStack by default", m_stack);
     cmd.AddValue("root", "Mac address of root mesh point in HWMP", m_root);
     cmd.AddValue("threads", "Number of threads to use for simulation", m_threads);
+    cmd.AddValue("nullmsg", "Enable the use of null-message synchronization", nullmsg);
+    if (nullmsg)
+    {
+        GlobalValue::Bind("SimulatorImplementationType",
+                        StringValue("ns3::NullMessageSimulatorImpl"));
+    }
+    else
+    {
+        GlobalValue::Bind("SimulatorImplementationType",
+                        StringValue("ns3::DistributedSimulatorImpl"));
+    }
     cmd.Parse(argc, argv);
     NS_LOG_DEBUG("Grid:" << m_xSize << "*" << m_ySize);
     NS_LOG_DEBUG("Simulation time: " << m_totalTime << " s");
@@ -226,6 +243,7 @@ MeshTest::Configure(int argc, char* argv[])
     {
         PacketMetadata::Enable();
     }
+    MpiInterface::Enable(&argc, &argv);
 }
 
 void
@@ -404,6 +422,7 @@ MeshTest::Run()
     Simulator::Destroy();
     std::cout << "UDP echo packets sent: " << g_udpTxCount << " received: " << g_udpRxCount
               << std::endl;
+    MpiInterface::Disable();
     return 0;
 }
 

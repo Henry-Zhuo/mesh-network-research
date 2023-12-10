@@ -7,4 +7,5 @@ build_lib_example(
     ${libwifi}
     ${libmesh}
     ${libapplications}
+    ${libmpi}
 )
