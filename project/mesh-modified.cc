@@ -322,6 +322,7 @@ MeshTest::SetMobility()
 void
 MeshTest::SetupBuildings()
 {
+    // TODO: Consider converting to use CsvReader
     // Parse building info from file
     std::ifstream buildingsFile(m_buildings);
     std::string line;
