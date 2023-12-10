@@ -298,10 +298,10 @@ MeshTest::SetMobility()
                                   UintegerValue(m_xSize),
                                   "LayoutType",
                                   StringValue("RowFirst"));
-    mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-                              "Bounds",
-                              RectangleValue(Rectangle(0, m_step * m_xSize, 0, m_step * m_ySize)));
-    // mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+    // mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
+    //                           "Bounds",
+    //                           RectangleValue(Rectangle(0, m_step * m_xSize, 0, m_step * m_ySize)));
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     AsciiTraceHelper ascii;
     mobility.EnableAsciiAll(ascii.CreateFileStream("mesh-path.tr"));
     mobility.Install(nodes);
