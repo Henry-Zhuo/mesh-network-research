@@ -167,6 +167,9 @@ class MeshTest
     Ipv4InterfaceContainer interfaces;
     /// MeshHelper. Report is not static methods
     MeshHelper mesh;
+    /// SystemIds for source and sink of packets
+    uint32_t sinkSystemId;
+    uint32_t sourceSystemId;
 
   private:
     /// Create nodes
@@ -200,7 +203,9 @@ MeshTest::MeshTest()
       m_stack("ns3::Dot11sStack"),
       m_root("ff:ff:ff:ff:ff:ff"),
       m_threads(1),
-      nullmsg(false)
+      nullmsg(false),
+      sinkSystemId(0),
+      sourceSystemId(0)
 {
 }
 
@@ -367,22 +372,27 @@ MeshTest::InstallUdpApplication()
 {
     NS_LOG_DEBUG("Installing UDP application");
     uint16_t portNumber = 9;
-    UdpEchoServerHelper echoServer(portNumber);
     uint16_t sinkNodeId = m_xSize * m_ySize - 1;
-    ApplicationContainer serverApps = echoServer.Install(nodes.Get(sinkNodeId));
-    serverApps.Start(Seconds(1.0));
-    serverApps.Stop(Seconds(m_totalTime + 1));
-    UdpEchoClientHelper echoClient(interfaces.GetAddress(sinkNodeId), portNumber);
-    echoClient.SetAttribute("MaxPackets",
-                            UintegerValue((uint32_t)(m_totalTime * (1 / m_packetInterval))));
-    echoClient.SetAttribute("Interval", TimeValue(Seconds(m_packetInterval)));
-    echoClient.SetAttribute("PacketSize", UintegerValue(m_packetSize));
-    ApplicationContainer clientApps = echoClient.Install(nodes.Get(0));
-    Ptr<UdpEchoClient> app = clientApps.Get(0)->GetObject<UdpEchoClient>();
-    app->TraceConnectWithoutContext("Tx", MakeCallback(&TxTrace));
-    app->TraceConnectWithoutContext("Rx", MakeCallback(&RxTrace));
-    clientApps.Start(Seconds(1.0));
-    clientApps.Stop(Seconds(m_totalTime + 1.5));
+
+    uint32_t systemId = MpiInterface::GetSystemId();
+    if (systemId == sinkSystemId) {
+        UdpEchoServerHelper echoServer(portNumber);
+        ApplicationContainer serverApps = echoServer.Install(nodes.Get(sinkNodeId));
+        serverApps.Start(Seconds(1.0));
+        serverApps.Stop(Seconds(m_totalTime + 1));
+    } else if (systemId == sourceSystemId) {
+        UdpEchoClientHelper echoClient(interfaces.GetAddress(sinkNodeId), portNumber);
+        echoClient.SetAttribute("MaxPackets",
+                                UintegerValue((uint32_t)(m_totalTime * (1 / m_packetInterval))));
+        echoClient.SetAttribute("Interval", TimeValue(Seconds(m_packetInterval)));
+        echoClient.SetAttribute("PacketSize", UintegerValue(m_packetSize));
+        ApplicationContainer clientApps = echoClient.Install(nodes.Get(0));
+        Ptr<UdpEchoClient> app = clientApps.Get(0)->GetObject<UdpEchoClient>();
+        app->TraceConnectWithoutContext("Tx", MakeCallback(&TxTrace));
+        app->TraceConnectWithoutContext("Rx", MakeCallback(&RxTrace));
+        clientApps.Start(Seconds(1.0));
+        clientApps.Stop(Seconds(m_totalTime + 1.5));
+    }
 }
 
 void 
@@ -391,22 +401,25 @@ MeshTest::InstallTcpApplication() {
     uint16_t port = 9;
     uint16_t sinkNodeId = m_xSize * m_ySize - 1;
 
-    PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), port));
-    ApplicationContainer serverApps = packetSinkHelper.Install(nodes.Get(sinkNodeId));
-    serverApps.Start(Seconds(1.0));
-    serverApps.Stop(Seconds(m_totalTime + 1.0));
+    uint32_t systemId = MpiInterface::GetSystemId();
+    if (systemId == sinkSystemId) {
+        PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), port));
+        ApplicationContainer serverApps = packetSinkHelper.Install(nodes.Get(sinkNodeId));
+        serverApps.Start(Seconds(1.0));
+        serverApps.Stop(Seconds(m_totalTime + 1.0));
+    } else if (systemId == sourceSystemId) {
+        OnOffHelper onoffHelper("ns3::TcpSocketFactory", InetSocketAddress(interfaces.GetAddress(sinkNodeId), port));
+        onoffHelper.SetAttribute("PacketSize", UintegerValue(m_packetSize));
+        onoffHelper.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
+        onoffHelper.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
-    OnOffHelper onoffHelper("ns3::TcpSocketFactory", InetSocketAddress(interfaces.GetAddress(sinkNodeId), port));
-    onoffHelper.SetAttribute("PacketSize", UintegerValue(m_packetSize));
-    onoffHelper.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
-    onoffHelper.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
-
-    ApplicationContainer clientApps = onoffHelper.Install(nodes.Get(0));
-    Ptr<OnOffApplication> app = clientApps.Get(0)->GetObject<OnOffApplication>();
-    app->TraceConnectWithoutContext("Tx", MakeCallback(&TxTrace));
-    app->TraceConnectWithoutContext("Rx", MakeCallback(&RxTrace));
-    clientApps.Start(Seconds(1.0));
-    clientApps.Stop(Seconds(m_totalTime + 1.5));
+        ApplicationContainer clientApps = onoffHelper.Install(nodes.Get(0));
+        Ptr<OnOffApplication> app = clientApps.Get(0)->GetObject<OnOffApplication>();
+        app->TraceConnectWithoutContext("Tx", MakeCallback(&TxTrace));
+        app->TraceConnectWithoutContext("Rx", MakeCallback(&RxTrace));
+        clientApps.Start(Seconds(1.0));
+        clientApps.Stop(Seconds(m_totalTime + 1.5));
+    }
 }
 
 int
