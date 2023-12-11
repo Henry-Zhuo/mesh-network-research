@@ -456,7 +456,7 @@ MeshTest::Run()
     Simulator::Stop(Seconds(m_totalTime + 2));
     Simulator::Run();
     Simulator::Destroy();
-    std::cout << "UDP echo packets sent: " << g_udpTxCount << " received: " << g_udpRxCount
+    std::cout << m_app << " echo packets sent: " << g_udpTxCount << " received: " << g_udpRxCount
               << std::endl;
     return 0;
 }
