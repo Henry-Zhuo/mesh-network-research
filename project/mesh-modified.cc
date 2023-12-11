@@ -155,6 +155,7 @@ class MeshTest
     std::string m_stack;     ///< stack
     std::string m_root;      ///< root
     std::string m_buildings; ///< Name of file defining buildings
+    bool m_randomWalk;       ///< Whether nodes should randomly walk
 
     /// List of network nodes
     NodeContainer nodes;
@@ -198,7 +199,8 @@ MeshTest::MeshTest()
       m_app("tcp"),
       m_stack("ns3::Dot11sStack"),
       m_root("ff:ff:ff:ff:ff:ff"),
-      m_buildings("buildings.txt")
+      m_buildings("buildings.txt"),
+      m_randomWalk(false)
 {
 }
 
@@ -223,6 +225,7 @@ MeshTest::Configure(int argc, char* argv[])
     cmd.AddValue("stack", "Type of protocol stack. ns3::Dot11sStack by default", m_stack);
     cmd.AddValue("root", "Mac address of root mesh point in HWMP", m_root);
     cmd.AddValue("buildings", "File name to read building data from", m_buildings);
+    cmd.AddValue("randomWalk", "Enable random walk movement of nodes", m_randomWalk);
     cmd.Parse(argc, argv);
     NS_LOG_DEBUG("Grid:" << m_xSize << "*" << m_ySize);
     NS_LOG_DEBUG("Simulation time: " << m_totalTime << " s");
@@ -310,10 +313,13 @@ MeshTest::SetMobility()
                                   UintegerValue(m_xSize),
                                   "LayoutType",
                                   StringValue("RowFirst"));
-    // mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-    //                           "Bounds",
-    //                           RectangleValue(Rectangle(0, m_step * m_xSize, 0, m_step * m_ySize)));
-    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+    if (m_randomWalk) {
+        mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
+                                  "Bounds",
+                                  RectangleValue(Rectangle(0, m_step * m_xSize, 0, m_step * m_ySize)));
+    } else {
+        mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+    }
     AsciiTraceHelper ascii;
     mobility.EnableAsciiAll(ascii.CreateFileStream("mesh-path.tr"));
     mobility.Install(nodes);
